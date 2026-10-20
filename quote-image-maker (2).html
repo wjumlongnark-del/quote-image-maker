@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ตัวสร้างรูปภาพคำพูด (Quote Image Maker)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600&family=Mitr:wght@400;500&family=Playfair+Display:wght@500;700&family=Poppins:wght@400;600&family=Prompt:wght@400;600&family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f3f1ee; --panel:#ffffff; --ink:#1d1b19; --muted:#6b665f; --line:#d9d4cc; --accent:#1f4d4a; --accent-ink:#fff;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#161514; --panel:#201f1d; --ink:#efece6; --muted:#a29c92; --line:#3a3733; --accent:#6fc2b8; --accent-ink:#0f1d1b; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Sarabun',system-ui,sans-serif;line-height:1.5}
+  header{padding:28px 24px 8px;max-width:1200px;margin:auto}
+  h1{margin:0;font-family:'Prompt',sans-serif;font-size:1.6rem;font-weight:600}
+  header p{margin:4px 0 0;color:var(--muted)}
+  main{max-width:1200px;margin:auto;padding:16px 24px 48px;display:grid;grid-template-columns:380px 1fr;gap:24px;align-items:start}
+  @media (max-width:860px){ main{grid-template-columns:1fr} }
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:20px}
+  .field{margin-bottom:16px}
+  label,.lbl{display:block;font-weight:700;margin-bottom:6px;font-size:.95rem}
+  input[type=text],textarea,select,input[type=file]{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit}
+  textarea{min-height:92px;resize:vertical}
+  input[type=color]{width:100%;height:38px;border:1px solid var(--line);border-radius:6px;background:var(--bg);padding:2px}
+  input[type=range]{width:100%;accent-color:var(--accent)}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .check{display:flex;gap:8px;align-items:center;font-weight:400;margin:0}
+  .check input{width:auto}
+  .val{color:var(--muted);font-weight:400}
+  .btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+  button{font:inherit;font-weight:700;padding:10px 16px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+  button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .stage{display:flex;align-items:center;justify-content:center;min-height:360px;background:
+    repeating-conic-gradient(var(--line) 0% 25%, transparent 0% 50%) 50% / 20px 20px;border:1px solid var(--line);border-radius:10px;padding:14px}
+  canvas{max-width:100%;height:auto;display:none;box-shadow:0 2px 14px rgba(0,0,0,.25)}
+  .empty{color:var(--muted);background:var(--panel);padding:10px 16px;border-radius:6px;text-align:center}
+  .hint{color:var(--muted);font-size:.85rem;margin-top:4px}
+  #posgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  #posgrid button{padding:8px 4px;font-weight:400;font-size:.9rem}
+  #posgrid button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+  .sticky{position:sticky;top:16px}
+</style>
+</head>
+<body>
+<header>
+  <h1>ตัวสร้างรูปภาพคำพูด</h1>
+  <p>อัปโหลดรูป พิมพ์คำพูด เลือกรูปแบบ แล้วบันทึกเป็นไฟล์ PNG</p>
+</header>
+
+<main>
+  <section class="panel" aria-label="ตั้งค่า">
+    <div class="field">
+      <label for="file">1. เลือกรูปภาพ (PNG, JPG, JPEG, WEBP, GIF, BMP)</label>
+      <input type="file" id="file" accept="image/png,image/jpeg,image/webp,image/gif,image/bmp,.png,.jpg,.jpeg,.webp,.gif,.bmp">
+    </div>
+
+    <div class="field">
+      <label for="quote">2. ข้อความคำพูด</label>
+      <textarea id="quote">The ruling class fears education because it makes obedience impossible.</textarea>
+    </div>
+
+    <div class="field">
+      <label for="author">ชื่อผู้กล่าว (เว้นว่างได้)</label>
+      <input type="text" id="author" value="Karl Marx">
+    </div>
+
+    <div class="field">
+      <label for="qstyle">เครื่องหมายคำพูด</label>
+      <select id="qstyle">
+        <option value="icon">ไอคอน “ ขนาดใหญ่ด้านบน (เหมือนตัวอย่าง)</option>
+        <option value="wrap">ครอบข้อความด้วย “ ... ”</option>
+        <option value="none">ไม่ใส่เครื่องหมายคำพูด</option>
+      </select>
+      <label class="check" style="margin-top:8px"><input type="checkbox" id="bar" checked> แสดงเส้นแนวตั้งข้างข้อความ</label>
+    </div>
+
+    <div class="field">
+      <label for="layout">3. พื้นที่ว่างสำหรับใส่ข้อความ</label>
+      <select id="layout">
+        <option value="gradient-left">ไล่เฉดสีทับรูปด้านซ้าย (ไม่ขยายภาพ)</option>
+        <option value="gradient-right">ไล่เฉดสีทับรูปด้านขวา</option>
+        <option value="gradient-top">ไล่เฉดสีทับรูปด้านบน</option>
+        <option value="gradient-bottom">ไล่เฉดสีทับรูปด้านล่าง</option>
+        <option value="left">เพิ่มพื้นที่สีเรียบด้านซ้าย</option>
+        <option value="right">เพิ่มพื้นที่สีเรียบด้านขวา</option>
+        <option value="top">เพิ่มพื้นที่สีเรียบด้านบน</option>
+        <option value="bottom">เพิ่มพื้นที่สีเรียบด้านล่าง</option>
+        <option value="overlay">ไม่เพิ่มพื้นที่ (วางข้อความทับรูป + ม่านมืด)</option>
+      </select>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label for="panelColor">สีพื้นที่ว่าง</label>
+        <input type="color" id="panelColor" value="#000000">
+      </div>
+      <div class="field">
+        <label for="panelSize">ขนาดพื้นที่ <span class="val" id="panelSizeV">60%</span></label>
+        <input type="range" id="panelSize" min="20" max="120" value="60">
+      </div>
+    </div>
+
+    <div class="field">
+      <span class="lbl">ตำแหน่งข้อความ</span>
+      <div id="posgrid" role="group" aria-label="ตำแหน่งข้อความ">
+        <button type="button" data-p="tl">บนซ้าย</button>
+        <button type="button" data-p="tc">บนกลาง</button>
+        <button type="button" data-p="tr">บนขวา</button>
+        <button type="button" data-p="ml">กลางซ้าย</button>
+        <button type="button" data-p="mc">กึ่งกลาง</button>
+        <button type="button" data-p="mr">กลางขวา</button>
+        <button type="button" data-p="bl">ล่างซ้าย</button>
+        <button type="button" data-p="bc">ล่างกลาง</button>
+        <button type="button" data-p="br">ล่างขวา</button>
+      </div>
+      <p class="hint">เมื่อเปลี่ยนรูปแบบพื้นที่ ระบบจะเลือกตำแหน่งที่เหมาะให้ก่อน แล้วคุณปรับเองได้</p>
+    </div>
+
+    <div class="field">
+      <label for="fsize">4. ขนาดอักษร <span class="val" id="fsizeV">44</span></label>
+      <input type="range" id="fsize" min="16" max="120" value="44">
+    </div>
+    <div class="row">
+      <div class="field">
+        <label for="font">Font</label>
+        <select id="font">
+          <option value="Sarabun">Sarabun</option>
+          <option value="Prompt">Prompt</option>
+          <option value="Kanit">Kanit</option>
+          <option value="Mitr">Mitr</option>
+          <option value="Poppins" selected>Poppins</option>
+          <option value="Playfair Display">Playfair Display</option>
+          <option value="Georgia">Georgia</option>
+          <option value="Arial">Arial</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="color">สีตัวอักษร</label>
+        <input type="color" id="color" value="#ffffff">
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="outsize">5. ขนาดภาพที่ได้ (ด้านที่ยาวที่สุดของรูป)</label>
+      <select id="outsize">
+        <option value="0">ขนาดเดิมของรูปต้นฉบับ</option>
+        <option value="1080">1080 px</option>
+        <option value="1600">1600 px</option>
+        <option value="2400" selected>2400 px (แนะนำ)</option>
+        <option value="3200">3200 px</option>
+        <option value="4096">4096 px (ใหญ่มาก)</option>
+      </select>
+      <p class="hint">ถ้ารูปต้นฉบับเล็ก ระบบจะขยายให้ถึงขนาดที่เลือก ตัวอักษรจะคมชัด แต่ตัวรูปอาจไม่คมขึ้น ขนาดจริงรวมพื้นที่ที่เพิ่มจะแสดงใต้ปุ่ม</p>
+    </div>
+
+    <div class="btns">
+      <button class="primary" id="go">ประมวลผล</button>
+      <button id="save" disabled>บันทึกเป็น PNG</button>
+      <button id="reset">Reset</button>
+    </div>
+    <p class="hint" id="msg" role="status"></p>
+  </section>
+
+  <section class="sticky" aria-label="ตัวอย่างผลลัพธ์">
+    <div class="stage">
+      <div class="empty" id="empty">เลือกรูปภาพ แล้วกด “ประมวลผล” เพื่อดูตัวอย่าง</div>
+      <canvas id="cv"></canvas>
+    </div>
+  </section>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const cv = $('cv'), ctx = cv.getContext('2d');
+let img = null, imgName = 'quote', pos = 'ml';
+function setPos(v){ pos = v; document.querySelectorAll('#posgrid button').forEach(b => b.setAttribute('aria-pressed', b.dataset.p === v)); }
+document.querySelectorAll('#posgrid button').forEach(b => b.addEventListener('click', () => setPos(b.dataset.p)));
+const autoPos = {'gradient-left':'ml','gradient-right':'mr','gradient-top':'tc','gradient-bottom':'bc',overlay:'ml',left:'ml',right:'ml',top:'ml',bottom:'ml'};
+$('layout').addEventListener('change', () => setPos(autoPos[$('layout').value] || 'ml'));
+
+const defaults = {
+  quote:'The ruling class fears education because it makes obedience impossible.',
+  author:'Karl Marx', qstyle:'icon', bar:true, layout:'gradient-left', panelColor:'#000000',
+  panelSize:60, fsize:44, font:'Poppins', color:'#ffffff', outsize:'2400'
+};
+
+function setMsg(t){ $('msg').textContent = t || ''; }
+function syncLabels(){ $('panelSizeV').textContent = $('panelSize').value + '%'; $('fsizeV').textContent = $('fsize').value; }
+['panelSize','fsize'].forEach(i => $(i).addEventListener('input', syncLabels));
+
+$('file').addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  if (!f.type.startsWith('image/')) { setMsg('ไฟล์นี้ไม่ใช่รูปภาพ กรุณาเลือกไฟล์ png, jpg, jpeg ฯลฯ'); e.target.value=''; return; }
+  const url = URL.createObjectURL(f);
+  const im = new Image();
+  im.onload = () => { img = im; imgName = f.name.replace(/\.[^.]+$/, ''); setMsg('โหลดรูปแล้ว กด “ประมวลผล” เพื่อสร้างภาพ'); };
+  im.onerror = () => setMsg('เปิดไฟล์รูปนี้ไม่ได้ ลองใช้ไฟล์อื่น');
+  im.src = url;
+});
+
+// แบ่งข้อความเป็นบรรทัด รองรับภาษาไทย (ไม่มีช่องว่างระหว่างคำ)
+function wrap(text, maxW){
+  const seg = (typeof Intl !== 'undefined' && Intl.Segmenter) ? new Intl.Segmenter('th', {granularity:'word'}) : null;
+  const lines = [];
+  text.split('\n').forEach(par => {
+    const tokens = seg ? [...seg.segment(par)].map(s => s.segment) : par.split(/(?<=\s)/);
+    let cur = '';
+    tokens.forEach(t => {
+      const test = cur + t;
+      if (ctx.measureText(test.trimEnd()).width <= maxW || !cur) cur = test;
+      else { lines.push(cur.trimEnd()); cur = t.trimStart(); }
+    });
+    lines.push(cur.trimEnd());
+  });
+  return lines;
+}
+
+async function render(){
+  if (!img) { setMsg('กรุณาเลือกรูปภาพก่อน'); return; }
+  const text = $('quote').value.trim();
+  if (!text) { setMsg('กรุณาพิมพ์ข้อความคำพูด'); return; }
+  const font = $('font').value;
+  try { await Promise.all([document.fonts.load(`700 40px "${font}"`), document.fonts.load(`400 40px "${font}"`), document.fonts.load('700 40px "Playfair Display"')]); } catch(e){}
+
+  const target = +$('outsize').value;
+  const k = target ? target / Math.max(img.naturalWidth, img.naturalHeight) : 1;
+  const iw = Math.round(img.naturalWidth * k), ih = Math.round(img.naturalHeight * k);
+  const layout = $('layout').value, p = $('panelSize').value / 100, pc = $('panelColor').value;
+
+  let cw = iw, ch = ih, ix = 0, iy = 0, rect = {x:0, y:0, w:iw, h:ih};
+  if (layout === 'left'){ const pw = Math.round(iw*p); cw = iw+pw; ix = pw; rect = {x:0,y:0,w:pw,h:ih}; }
+  else if (layout === 'right'){ const pw = Math.round(iw*p); cw = iw+pw; rect = {x:iw,y:0,w:pw,h:ih}; }
+  else if (layout === 'top'){ const ph = Math.round(ih*p); ch = ih+ph; iy = ph; rect = {x:0,y:0,w:iw,h:ph}; }
+  else if (layout === 'bottom'){ const ph = Math.round(ih*p); ch = ih+ph; rect = {x:0,y:ih,w:iw,h:ph}; }
+
+  cv.width = cw; cv.height = ch;
+  ctx.fillStyle = pc; ctx.fillRect(0,0,cw,ch);
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img, ix, iy, iw, ih);
+
+  if (layout.startsWith('gradient-')){
+    const e = Math.min(1, p + .25), side = layout.split('-')[1];
+    const [x0,y0,x1,y1] = side==='left' ? [0,0,iw*e,0] : side==='right' ? [iw,0,iw-iw*e,0]
+      : side==='top' ? [0,0,0,ih*e] : [0,ih,0,ih-ih*e];
+    const g = ctx.createLinearGradient(x0,y0,x1,y1);
+    g.addColorStop(0, pc); g.addColorStop(.6, hexA(pc,.85)); g.addColorStop(1, hexA(pc,0));
+    ctx.fillStyle = g; ctx.fillRect(0,0,iw,ih);
+  } else if (layout === 'overlay'){
+    ctx.fillStyle = hexA(pc,.55); ctx.fillRect(0,0,iw,ih);
+  }
+
+  // ข้อความ
+  const unit = iw / 1000;
+  const fs = $('fsize').value * unit;
+  const pad = Math.min(rect.w, rect.h) * 0.1 + fs * 0.4;
+  const row = pos[0], col = pos[1];
+  const alignName = col === 'l' ? 'left' : col === 'r' ? 'right' : 'center';
+  const showBar = $('bar').checked && col !== 'c';
+  const barW = Math.max(3, fs * 0.08), gap = fs * 0.55, barSpace = showBar ? barW + gap : 0;
+  const isPanel = ['left','right','top','bottom'].includes(layout);
+  const wf = isPanel ? 1 : (layout === 'gradient-top' || layout === 'gradient-bottom') ? 0.8 : (col === 'c' ? 0.7 : 0.55);
+  const maxW = Math.max(60, (rect.w - pad*2 - barSpace) * wf);
+  const blockW = maxW + barSpace;
+  const blockX = col === 'l' ? rect.x + pad : col === 'r' ? rect.x + rect.w - pad - blockW : rect.x + (rect.w - blockW) / 2;
+  const textX = col === 'l' ? blockX + barSpace : col === 'r' ? blockX + maxW : blockX + maxW / 2;
+  const iconX = col === 'l' ? blockX : col === 'r' ? blockX + blockW : textX;
+  const barX = col === 'r' ? blockX + maxW + gap : blockX;
+  const qs = $('qstyle').value;
+  const body = qs === 'wrap' ? '\u201C' + text + '\u201D' : text;
+  const textFont = `600 ${fs}px "${font}", "Sarabun", sans-serif`;
+
+  ctx.textBaseline = 'top'; ctx.textAlign = alignName;
+  ctx.font = textFont;
+  const lines = wrap(body, maxW);
+  const lh = fs * 1.4;
+  const author = $('author').value.trim();
+  const iconH = qs === 'icon' ? fs * 2.6 : 0;
+  const textH = lines.length * lh;
+  const afs = fs * 0.6;
+  const authH = author ? afs * 1.4 + fs * 0.9 : 0;
+  const total = iconH + textH + authH;
+  let y = row === 't' ? rect.y + pad : row === 'b' ? rect.y + rect.h - pad - total : rect.y + (rect.h - total) / 2;
+
+  ctx.fillStyle = $('color').value;
+  if (qs === 'icon'){
+    ctx.font = `700 ${fs*3.4}px "Playfair Display", Georgia, serif`;
+    ctx.fillText('\u201C', iconX, y - fs*0.4);
+    y += iconH;
+  }
+  if (showBar) ctx.fillRect(barX, y, barW, textH);
+  ctx.font = textFont;
+  lines.forEach((l,i) => ctx.fillText(l, textX, y + i*lh));
+  y += textH;
+  if (author){
+    ctx.font = `italic 400 ${afs}px "${font}", "Sarabun", sans-serif`;
+    ctx.fillText(author, textX, y + fs*0.9);
+  }
+
+  cv.style.display = 'block'; $('empty').style.display = 'none';
+  $('save').disabled = false;
+  setMsg(`สร้างภาพขนาด ${cw} × ${ch} px แล้ว`);
+}
+
+function hexA(hex, a){
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;
+}
+
+$('go').addEventListener('click', render);
+
+$('save').addEventListener('click', () => {
+  cv.toBlob(b => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(b);
+    a.download = imgName + '-quote.png';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }, 'image/png');
+});
+
+$('reset').addEventListener('click', () => {
+  Object.entries(defaults).forEach(([k,v]) => { const el = $(k); if (el.type === 'checkbox') el.checked = v; else el.value = v; });
+  $('file').value = ''; img = null;
+  ctx.clearRect(0,0,cv.width,cv.height); cv.width = cv.height = 0;
+  cv.style.display = 'none'; $('empty').style.display = ''; $('save').disabled = true;
+  setPos('ml'); syncLabels(); setMsg('รีเซ็ตข้อมูลแล้ว');
+});
+
+syncLabels(); setPos('ml');
+</script>
+</body>
+</html>
